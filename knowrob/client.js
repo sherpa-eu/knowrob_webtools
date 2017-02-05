@@ -330,7 +330,6 @@ function KnowrobClient(options){
       });
       cameraPoseClient.subscribe(function(message) {
           // TODO: send to all?
-          if(that.getActiveFrame().on_camera_pose_received)
             that.getActiveFrame().on_camera_pose_received(message);
       });
       

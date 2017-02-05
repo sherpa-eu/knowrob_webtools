@@ -194,8 +194,7 @@ function KnowrobReplayUI(client, options) {
     
     this.formatInitialQuery = function(t) {
         var fps = parseInt(document.getElementById("replay-fps").value, 10);
-        var init_query = "openease_video_fps(" + fps +
-            "), openease_video_start, !, clear_canvas, T = 'timepoint_" + t + "', " +
+        var init_query = "clear_canvas, T = 'timepoint_" + t + "', " +
             ace.edit('init_query').getValue().trim();
         init_query = init_query.substr(0, init_query.length - 1);
         return init_query;
@@ -234,7 +233,7 @@ function KnowrobReplayUI(client, options) {
     this.streamRange = function(t0, t1) {
         var video_query = ace.edit('user_query').getValue();
         var fps = parseInt(document.getElementById("replay-fps").value, 10);
-        var step_sec = 1.0/fps;
+        var step_sec = 1.0; ///fps;
         var frame_number = 1;
         var t = t0;
         isStreaming = true;
@@ -242,7 +241,7 @@ function KnowrobReplayUI(client, options) {
         function streamStep(){
           if(!isStreaming) return;
           t += step_sec;
-          if(t>t1) return;
+          //if(t>t1) return;
           that.updateProgressBar(t0, t1, t);
           
           var query = "T = 'timepoint_" + t.toString() + "', " + video_query;
