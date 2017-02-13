@@ -40,6 +40,18 @@ function KnowrobUI(client, options) {
                 editor.style.display = "none";
             }
         };
+
+        window.setInterval(function(){
+            if(document.getElementById("live").checked == true)
+            {
+               var prolog = client.newProlog();
+               prolog.jsonQuery("mng_lookup_transform('/map', '" + client.cameraTopic + "', _Transform), camera_transform(_Transform).",
+                  function(result) {
+                    prolog.finishClient();
+                  }
+               );
+            }          
+        }, 1500);
     };
     
     this.initCanvas = function() {
@@ -80,7 +92,7 @@ function KnowrobUI(client, options) {
     
     this.loadQueriesForObject = function(objectName) {
         var prolog = client.newProlog();
-        prolog.jsonQuery("object_queries("+objectName+",Queries).",
+        prolog.jsonQuery("object_queries("+objectName+",Queries), publish_marker_id('"+objectName+"').",
             function(result) {
                 prolog.finishClient();
                 ui.loadObjectQueries(result.solution.Queries);

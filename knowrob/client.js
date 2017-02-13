@@ -57,6 +57,9 @@ function KnowrobClient(options){
     var imageClient = undefined;
     var cameraPoseClient = undefined;
     this.snapshotTopic = undefined;
+    this.blueWaspTopic = undefined;
+    this.hawkTopic = undefined;
+    this.cameraTopic = "/hawk/optical_frame";
     
     this.nodesRegistered = false;
     
@@ -198,6 +201,43 @@ function KnowrobClient(options){
         name : '/openease/video/frame',
         messageType : 'sensor_msgs/Image'
       });
+
+
+      //*********sherpa stuff**********
+
+      that.blueWaspTopic = new ROSLIB.Topic({
+        ros : that.ros,
+        name : '/blue_wasp/TakePicture/result',
+        messageType : 'sherpa_msgs/TakePictureActionResult'
+      });
+
+      that.blueWaspTopic.subscribe(function(message) {
+        that.cameraTopic = "/blue_wasp/optical_frame";
+
+        var prolog = new JsonProlog(that.ros, {});
+        prolog.jsonQuery("mng_query_latest('RoboSherlock_output_image', one(DBObj), 'header.stamp'), mng_image_base64(DBObj, _Base64), save_canvas_latest(_Base64, '" +
+                          message.result.picture_id + "', CompletePath), video_play(_Base64).",
+            function(result) { prolog.finishClient(); });
+
+
+      });
+
+      that.hawkTopic = new ROSLIB.Topic({
+        ros : that.ros,
+        name : '/hawk/TakePicture/result',
+        messageType : 'sherpa_msgs/TakePictureActionResult'
+      });
+
+      that.hawkTopic.subscribe(function(message) {
+        that.cameraTopic = "/hawk/optical_frame";
+        var prolog = new JsonProlog(that.ros, {});
+        prolog.jsonQuery("mng_query_latest('RoboSherlock_output_image', one(DBObj), 'header.stamp'), mng_image_base64(DBObj, _Base64), save_canvas_latest(_Base64, '" +
+                          message.result.picture_id + "', CompletePath), video_play(_Base64).",
+            function(result) { prolog.finishClient(); });
+
+
+      });
+      
       
       // Setup a client to listen to TFs.
       tfClient = new ROSLIB.TFClient({
@@ -289,19 +329,38 @@ function KnowrobClient(options){
       imageClient.subscribe(function(message) {
           var ext = message.data.substr(message.data.lastIndexOf('.') + 1).toLowerCase();
           var url = message.data;
-          if(!url.startsWith("/knowrob/")) url = '/knowrob/knowrob_data/'+url;
-          
-          var imageHeight, imageWidth;
-          var html = '';
-          if(ext=='jpg' || ext =='png') {
-              html += '<div class="image_view">';
-              html += '<img id="mjpeg_image" class="picture" src="'+url+'" width="300" height="240"/>';
-              html += '</div>';
+
+          if(url.startsWith("data:")) {
+             var imageHeight, imageWidth;
+             var html = '';
+
+             html += '<div class="image_view">';
+             html += '<img id="mjpeg_image" class="picture" src="'+url+'" width="300" height="240"/>';
+             html += '</div>';
               
-              imageHeight = function(mjpeg_image) { return mjpeg_image.height; };
-              imageWidth  = function(mjpeg_image) { return mjpeg_image.width; };
+             imageHeight = function(mjpeg_image) { return mjpeg_image.height; };
+             imageWidth  = function(mjpeg_image) { return mjpeg_image.width; };
+
+             if(html.length>0 && that.getActiveFrame().on_image_received) {
+                // TODO: send to all?
+                that.getActiveFrame().on_image_received(html, imageWidth, imageHeight);
+             }
+
           }
-          else if(ext =='ogg' || ext =='ogv' || ext =='mp4' || ext =='mov') {
+          else {
+            if(!url.startsWith("/knowrob/")) url = '/knowrob/knowrob_data/'+url;
+          
+            var imageHeight, imageWidth;
+            var html = '';
+            if(ext=='jpg' || ext =='png') {
+                html += '<div class="image_view">';
+                html += '<img id="mjpeg_image" class="picture" src="'+url+'" width="300" height="240"/>';
+                html += '</div>';
+              
+                imageHeight = function(mjpeg_image) { return mjpeg_image.height; };
+                imageWidth  = function(mjpeg_image) { return mjpeg_image.width; };
+            }
+            else if(ext =='ogg' || ext =='ogv' || ext =='mp4' || ext =='mov') {
               html += '<div class="image_view">';
               html += '  <video id="mjpeg_image" controls autoplay loop>';
               html += '    <source src="'+url+'" ';
@@ -313,13 +372,14 @@ function KnowrobClient(options){
               
               imageHeight = function(mjpeg_image) { return mjpeg_image.videoHeight; };
               imageWidth  = function(mjpeg_image) { return mjpeg_image.videoWidth; };
-          }
-          else {
+            }
+            else {
               console.warn("Unknown data format on /logged_images topic: " + message.data);
-          }
-          if(html.length>0 && that.getActiveFrame().on_image_received) {
+            }
+            if(html.length>0 && that.getActiveFrame().on_image_received) {
               // TODO: send to all?
               that.getActiveFrame().on_image_received(html, imageWidth, imageHeight);
+            }
           }
       });
 
@@ -394,7 +454,7 @@ function KnowrobClient(options){
         
         var prolog = new JsonProlog(that.ros, {});
         prolog.jsonQuery("term_to_atom("+marker.ns+",MarkerName), "+
-            "marker_highlight(MarkerName), ignore(marker_publish).",
+            "marker_highlight(MarkerName), publish_marker_id("+marker.ns+"), ignore(marker_publish).",
             function(result) { prolog.finishClient(); });
     };
     
