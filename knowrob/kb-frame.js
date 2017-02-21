@@ -45,7 +45,7 @@ function KnowrobUI(client, options) {
             if(document.getElementById("live").checked == true)
             {
                var prolog = client.newProlog();
-               prolog.jsonQuery("mng_lookup_transform('/map', '" + client.cameraTopic + "', _Transform), camera_transform(_Transform).",
+               prolog.jsonQuery("transform_latest_z_axis_down('/map', '" + client.cameraTopic + "', _Out),camera_transform(_Out).",
                   function(result) {
                     prolog.finishClient();
                   }

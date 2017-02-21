@@ -347,6 +347,25 @@ function KnowrobClient(options){
              }
 
           }
+          else if(url.startsWith("/home/ros/user_data")) {
+             url = url.replace("/home/ros/user_data/", "");
+             url = '/knowrob/user_data/'+url;
+             var imageHeight, imageWidth;
+             var html = '';
+
+             html += '<div class="image_view">';
+             html += '<img id="mjpeg_image" class="picture" src="'+url+'" width="800" height="600"/>';
+             html += '</div>';
+              
+             imageHeight = function(mjpeg_image) { return mjpeg_image.height; };
+             imageWidth  = function(mjpeg_image) { return mjpeg_image.width; };
+
+             if(html.length>0 && that.getActiveFrame().on_image_received) {
+                // TODO: send to all?
+                that.getActiveFrame().on_image_received(html, imageWidth, imageHeight);
+             }
+
+          }
           else {
             if(!url.startsWith("/knowrob/")) url = '/knowrob/knowrob_data/'+url;
           
