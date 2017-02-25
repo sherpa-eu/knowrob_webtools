@@ -59,7 +59,11 @@ function KnowrobClient(options){
     this.snapshotTopic = undefined;
     this.blueWaspTopic = undefined;
     this.hawkTopic = undefined;
+    this.blueWaspTransmitTopic = undefined;
+    this.hawkTransmitTopic = undefined;
+    this.commandTopic = undefined;
     this.cameraTopic = "/hawk/optical_frame";
+    this.fileName = "";
     
     this.nodesRegistered = false;
     
@@ -84,7 +88,7 @@ function KnowrobClient(options){
     this.scene             = new CanvasProxy('scene');
     this.selectableObjects = new CanvasProxy('selectableObjects');
     this.backgroundScene   = new CanvasProxy('backgroundScene');
-    this.orthoScene        = new CanvasProxy('orthogonalScene');
+    this.orthoScene        = new CanvasProxy('sceneOrtho');
     
     this.init = function() {
         // Connect to ROS.
@@ -205,6 +209,56 @@ function KnowrobClient(options){
 
       //*********sherpa stuff**********
 
+      that.commandTopic = new ROSLIB.Topic({
+        ros : that.ros,
+        name : '/display_command',
+        messageType : 'std_msgs/String'
+      });
+      that.commandTopic.subscribe(function(message) {
+           //alert(message.data);
+
+           //marker(hud_text('huder'), Sb), marker_text(Sb,'ddd'), marker_translation(Sb, [50,50,5]),  marker_update(Sb).
+
+           var prolog = new JsonProlog(that.ros, {});
+           prolog.jsonQuery("marker(hud_text('huder'), Sb), marker_text(Sb,'"+ message.data +"'), marker_translation(Sb, [40,110,5]), marker_color(Sb, [1,0,0,1]), marker_update(Sb), marker_publish.",
+               function(result) { prolog.finishClient(); });
+      });
+
+      that.blueWaspTransmitTopic = new ROSLIB.Topic({
+        ros : that.ros,
+        name : '/blue_wasp/image_transmitted',
+        messageType : 'std_msgs/Bool'
+      });
+
+      that.blueWaspTransmitTopic.subscribe(function(message) {
+
+        if(message.data)
+        {
+          var prolog = new JsonProlog(that.ros, {});
+          prolog.jsonQuery("video_play('" + that.fileName + "').",
+              function(result) { prolog.finishClient(); });
+        }
+
+      });
+
+
+      that.hawkTransmitTopic = new ROSLIB.Topic({
+        ros : that.ros,
+        name : '/hawk/image_transmitted',
+        messageType : 'std_msgs/Bool'
+      });
+
+      that.hawkTransmitTopic.subscribe(function(message) {
+
+        if(message.data)
+        {
+          var prolog = new JsonProlog(that.ros, {});
+          prolog.jsonQuery("video_play('" + that.fileName + "').",
+              function(result) { prolog.finishClient(); });
+        }
+
+      });
+
       that.blueWaspTopic = new ROSLIB.Topic({
         ros : that.ros,
         name : '/blue_wasp/TakePicture/result',
@@ -214,11 +268,12 @@ function KnowrobClient(options){
       that.blueWaspTopic.subscribe(function(message) {
         that.cameraTopic = "/blue_wasp/optical_frame";
 
-        var prolog = new JsonProlog(that.ros, {});
-        prolog.jsonQuery("mng_query_latest('RoboSherlock_output_image', one(DBObj), 'header.stamp'), mng_image_base64(DBObj, _Base64), save_canvas_latest(_Base64, '" +
-                          message.result.picture_id + "', CompletePath), video_play(_Base64).",
-            function(result) { prolog.finishClient(); });
 
+        var prolog = new JsonProlog(that.ros, {});
+        prolog.jsonQuery("mng_query_latest('RoboSherlock_output_image', one(DBObj), 'header.stamp'), mng_image_base64(DBObj, Base64), save_canvas_latest(Base64, '" +
+                          message.result.picture_id + "', CompletePath).", //video_play(Base64)
+            function(result) { prolog.finishClient(); that.fileName = result.solution.Base64;});
+        
 
       });
 
@@ -231,9 +286,9 @@ function KnowrobClient(options){
       that.hawkTopic.subscribe(function(message) {
         that.cameraTopic = "/hawk/optical_frame";
         var prolog = new JsonProlog(that.ros, {});
-        prolog.jsonQuery("mng_query_latest('RoboSherlock_output_image', one(DBObj), 'header.stamp'), mng_image_base64(DBObj, _Base64), save_canvas_latest(_Base64, '" +
-                          message.result.picture_id + "', CompletePath), video_play(_Base64).",
-            function(result) { prolog.finishClient(); });
+        prolog.jsonQuery("mng_query_latest('RoboSherlock_output_image', one(DBObj), 'header.stamp'), mng_image_base64(DBObj, Base64), save_canvas_latest(Base64, '" +
+                          message.result.picture_id + "', CompletePath).", //video_play(Base64)
+            function(result) { prolog.finishClient(); that.fileName = result.solution.Base64;});
 
 
       });
@@ -466,14 +521,26 @@ function KnowrobClient(options){
     };
     
     this.selectMarker = function(marker) {
-        if(that.selectedMarker == marker.ns) return;
+        var markerId = '';
+
+        if(marker.ns.startsWith('trajectory'))
+        {
+            var ind = marker.ns.indexOf(')');
+            markerId = marker.ns.substring(0, ind + 1);
+        }
+        else
+        {
+            markerId = marker.ns;
+        }
+
+        if(that.selectedMarker == markerId) return;
         
         if(that.selectedMarker) that.unselectMarker(that.selectedMarker);
-        that.selectedMarker = marker.ns;
+        that.selectedMarker = markerId;
         
         var prolog = new JsonProlog(that.ros, {});
-        prolog.jsonQuery("term_to_atom("+marker.ns+",MarkerName), "+
-            "marker_highlight(MarkerName), publish_marker_id("+marker.ns+"), ignore(marker_publish).",
+        prolog.jsonQuery("term_to_atom("+markerId+",MarkerName), "+
+            "marker_highlight(MarkerName), publish_marker_id("+markerId+"), ignore(marker_publish).",
             function(result) { prolog.finishClient(); });
     };
     
