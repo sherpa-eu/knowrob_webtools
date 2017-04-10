@@ -231,32 +231,9 @@ function KnowrobClient(options){
       });
 
       that.blueWaspTransmitTopic.subscribe(function(message) {
-
-        if(message.data)
-        {
-          var prolog = new JsonProlog(that.ros, {});
-          prolog.jsonQuery("video_play('" + that.fileName + "').",
-              function(result) { prolog.finishClient(); });
-        }
-
-      });
-
-
-      that.hawkTransmitTopic = new ROSLIB.Topic({
-        ros : that.ros,
-        name : '/hawk/image_transmitted',
-        messageType : 'std_msgs/Bool'
-      });
-
-      that.hawkTransmitTopic.subscribe(function(message) {
-
-        if(message.data)
-        {
-          var prolog = new JsonProlog(that.ros, {});
-          prolog.jsonQuery("video_play('" + that.fileName + "').",
-              function(result) { prolog.finishClient(); });
-        }
-
+        var prolog = new JsonProlog(that.ros, {});
+        prolog.jsonQuery("video_play('" + that.fileName + "').",
+            function(result) { prolog.finishClient(); });
       });
 
       that.blueWaspTopic = new ROSLIB.Topic({
@@ -272,7 +249,7 @@ function KnowrobClient(options){
         var prolog = new JsonProlog(that.ros, {});
         prolog.jsonQuery("mng_query_latest('RoboSherlock_output_image', one(DBObj), 'header.stamp'), mng_image_base64(DBObj, Base64), save_canvas_latest(Base64, '" +
                           message.result.picture_id + "', CompletePath).", //video_play(Base64)
-            function(result) { prolog.finishClient(); that.fileName = result.solution.Base64;});
+            function(result) { prolog.finishClient();  that.fileName = result.solution.Base64;});
         
 
       });
@@ -287,8 +264,8 @@ function KnowrobClient(options){
         that.cameraTopic = "/hawk/optical_frame";
         var prolog = new JsonProlog(that.ros, {});
         prolog.jsonQuery("mng_query_latest('RoboSherlock_output_image', one(DBObj), 'header.stamp'), mng_image_base64(DBObj, Base64), save_canvas_latest(Base64, '" +
-                          message.result.picture_id + "', CompletePath).", //video_play(Base64)
-            function(result) { prolog.finishClient(); that.fileName = result.solution.Base64;});
+                          message.result.picture_id + "', CompletePath) , video_play(Base64).",
+            function(result) { prolog.finishClient();});
 
 
       });
